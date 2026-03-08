@@ -169,6 +169,17 @@ export function TodosView({ projectId }: { projectId: number }) {
     });
   };
 
+  const onDragEnd = (result: DropResult) => {
+    if (!result.destination) return;
+    const reorderedLists = Array.from(lists);
+    const [removed] = reorderedLists.splice(result.source.index, 1);
+    reorderedLists.splice(result.destination.index, 0, removed);
+    setTodoLists(prev => {
+      const otherLists = prev.filter(l => l.projectId !== projectId);
+      return [...otherLists, ...reorderedLists];
+    });
+  };
+
   return (
     <motion.div 
       initial={{ opacity: 0, y: 10 }}
