@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, forwardRef } from "react";
+import React, { useState, forwardRef, memo } from "react";
 import { motion } from "motion/react";
 import { Plus, Check, X, UserPlus, Edit2, Trash2, ChevronUp, ChevronDown, Calendar as CalendarIcon } from "lucide-react";
 import DatePicker from "react-datepicker";
@@ -8,6 +8,144 @@ import "react-datepicker/dist/react-datepicker.css";
 import { format } from "date-fns";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { useAppContext } from "../../context/AppContext";
+
+const TaskItem = memo(({
+  task,
+  listId,
+  editingTask,
+  editingTaskText,
+  setEditingTask,
+  setEditingTaskText,
+  updateTask,
+  toggleTask,
+  assignTask,
+  setTaskDueDate,
+  deleteTask,
+  USERS
+}: {
+  task: any;
+  listId: number;
+  editingTask: number | null;
+  editingTaskText: string;
+  setEditingTask: (id: number | null) => void;
+  setEditingTaskText: (text: string) => void;
+  updateTask: (listId: number, taskId: number) => void;
+  toggleTask: (listId: number, taskId: number) => void;
+  assignTask: (listId: number, taskId: number, assignee: string | null) => void;
+  setTaskDueDate: (listId: number, taskId: number, date: Date | null) => void;
+  deleteTask: (listId: number, taskId: number) => void;
+  USERS: string[];
+}) => (
+  <div className="group flex items-start gap-3 p-2 -mx-2 rounded-lg hover:bg-zinc-800/30 transition-colors">
+    <button 
+      onClick={() => toggleTask(listId, task.id)}
+      className={`mt-0.5 w-5 h-5 rounded flex items-center justify-center flex-shrink-0 transition-colors ${task.done ? 'bg-indigo-500 border-indigo-500 text-white' : 'border-2 border-zinc-600 hover:border-indigo-500'}`}
+    >
+      {task.done && <Check className="w-3.5 h-3.5" />}
+    </button>
+    
+    {editingTask === task.id ? (
+      <div className="flex-1 flex gap-2">
+        <input
+          type="text"
+          autoFocus
+          value={editingTaskText}
+          onChange={(e) => setEditingTaskText(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && updateTask(listId, task.id)}
+          className="flex-1 bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-1 text-zinc-100 focus:outline-none focus:border-indigo-500 text-sm"
+        />
+        <button onClick={() => updateTask(listId, task.id)} className="p-1.5 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600">
+          <Check className="w-3 h-3" />
+        </button>
+        <button onClick={() => setEditingTask(null)} className="p-1.5 bg-zinc-800 text-zinc-400 rounded-lg hover:bg-zinc-700">
+          <X className="w-3 h-3" />
+        </button>
+      </div>
+    ) : (
+      <div className="flex-1">
+        <p className={`text-sm text-zinc-100 ${task.done ? 'line-through text-zinc-500' : ''}`}>{task.text}</p>
+        <div className="flex items-center gap-2 mt-2">
+          {task.assignee && (
+            <div className="flex items-center gap-1.5">
+              <div className="w-4 h-4 rounded-full bg-zinc-800 flex items-center justify-center text-[8px] font-bold text-zinc-400">
+                {task.assignee.charAt(0)}
+              </div>
+              <span className="text-xs text-zinc-500">{task.assignee}</span>
+            </div>
+          )}
+          {task.dueDate && (
+            <span className={`text-xs font-medium px-2 py-0.5 rounded ${new Date(task.dueDate + " " + new Date().getFullYear()) < new Date() ? 'bg-red-500/10 text-red-400' : 'bg-amber-500/10 text-amber-400'}`}>
+              {task.dueDate}
+            </span>
+          )}
+        </div>
+      </div>
+    )}
+
+    {!editingTask && (
+      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        {/* Assignee Dropdown */}
+        <div className="relative">
+          <button className="p-1 text-zinc-500 hover:text-indigo-400 hover:bg-zinc-800 rounded transition-colors">
+            <UserPlus className="w-3.5 h-3.5" />
+          </button>
+          <div className="absolute right-0 top-full mt-1 w-32 bg-zinc-900 border border-zinc-800 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
+            <button 
+              onClick={() => assignTask(listId, task.id, null)}
+              className="w-full text-left px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100"
+            >
+              Unassigned
+            </button>
+            {USERS.map(u => (
+              <button 
+                key={u}
+                onClick={() => assignTask(listId, task.id, u)}
+                className="w-full text-left px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 flex items-center gap-2"
+              >
+                <div className="w-4 h-4 rounded-full bg-zinc-800 flex items-center justify-center text-[8px] font-bold text-zinc-400">
+                  {u.charAt(0)}
+                </div>
+                {u}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Due Date Picker */}
+        <div className="relative">
+          <DatePicker
+            selected={task.dueDate ? new Date(task.dueDate + " " + new Date().getFullYear()) : null}
+            onChange={(date: Date | null) => setTaskDueDate(listId, task.id, date)}
+            dateFormat="MMM d"
+            customInput={
+              <button className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium transition-colors ${task.dueDate ? 'bg-amber-500/10 text-amber-500 hover:bg-amber-500/20' : 'text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300'}`}>
+                <CalendarIcon className="w-3.5 h-3.5" />
+                {task.dueDate || "Due Date"}
+              </button>
+            }
+            popperPlacement="bottom-end"
+          />
+        </div>
+
+        {/* Task Actions */}
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button 
+            onClick={() => { setEditingTask(task.id); setEditingTaskText(task.text); }}
+            className="p-1 text-zinc-500 hover:text-indigo-400 hover:bg-zinc-800 rounded transition-colors"
+          >
+            <Edit2 className="w-3.5 h-3.5" />
+          </button>
+          <button 
+            onClick={() => deleteTask(listId, task.id)}
+            className="p-1 text-zinc-500 hover:text-red-400 hover:bg-zinc-800 rounded transition-colors"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
+    )}
+  </div>
+));
 
 export function TodosView({ projectId }: { projectId: number }) {
   const { todoLists, setTodoLists, user, projects, addActivity } = useAppContext();
@@ -171,13 +309,51 @@ export function TodosView({ projectId }: { projectId: number }) {
 
   const onDragEnd = (result: DropResult) => {
     if (!result.destination) return;
-    const reorderedLists = Array.from(lists);
-    const [removed] = reorderedLists.splice(result.source.index, 1);
-    reorderedLists.splice(result.destination.index, 0, removed);
-    setTodoLists(prev => {
-      const otherLists = prev.filter(l => l.projectId !== projectId);
-      return [...otherLists, ...reorderedLists];
-    });
+
+    if (result.type === "list") {
+      // Reorder lists
+      const reorderedLists = Array.from(lists);
+      const [removed] = reorderedLists.splice(result.source.index, 1);
+      reorderedLists.splice(result.destination.index, 0, removed);
+      setTodoLists(prev => {
+        const otherLists = prev.filter(l => l.projectId !== projectId);
+        return [...otherLists, ...reorderedLists];
+      });
+    } else if (result.type === "task") {
+      const sourceListId = parseInt(result.source.droppableId.split('-')[1]);
+      const destListId = parseInt(result.destination.droppableId.split('-')[1]);
+
+      if (sourceListId === destListId) {
+        // Reorder within same list
+        setTodoLists(prev => prev.map(list => {
+          if (list.id === sourceListId) {
+            const reorderedTasks = Array.from(list.tasks);
+            const [removed] = reorderedTasks.splice(result.source.index, 1);
+            reorderedTasks.splice(result.destination.index, 0, removed);
+            return { ...list, tasks: reorderedTasks };
+          }
+          return list;
+        }));
+      } else {
+        // Move between lists
+        setTodoLists(prev => {
+          const sourceList = prev.find(l => l.id === sourceListId);
+          const destList = prev.find(l => l.id === destListId);
+          if (!sourceList || !destList) return prev;
+
+          const task = sourceList.tasks[result.source.index];
+          const newSourceTasks = sourceList.tasks.filter((_, i) => i !== result.source.index);
+          const newDestTasks = [...destList.tasks];
+          newDestTasks.splice(result.destination.index, 0, task);
+
+          return prev.map(list => {
+            if (list.id === sourceListId) return { ...list, tasks: newSourceTasks };
+            if (list.id === destListId) return { ...list, tasks: newDestTasks };
+            return list;
+          });
+        });
+      }
+    }
   };
 
   return (
