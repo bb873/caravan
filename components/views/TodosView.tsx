@@ -329,7 +329,9 @@ export function TodosView({ projectId }: { projectId: number }) {
           if (list.id === sourceListId) {
             const reorderedTasks = Array.from(list.tasks);
             const [removed] = reorderedTasks.splice(result.source.index, 1);
-            reorderedTasks.splice(result.destination.index, 0, removed);
+            if (result.destination) {
+              reorderedTasks.splice(result.destination.index, 0, removed);
+            }
             return { ...list, tasks: reorderedTasks };
           }
           return list;
@@ -339,7 +341,7 @@ export function TodosView({ projectId }: { projectId: number }) {
         setTodoLists(prev => {
           const sourceList = prev.find(l => l.id === sourceListId);
           const destList = prev.find(l => l.id === destListId);
-          if (!sourceList || !destList) return prev;
+          if (!sourceList || !destList || !result.destination) return prev;
 
           const task = sourceList.tasks[result.source.index];
           const newSourceTasks = sourceList.tasks.filter((_, i) => i !== result.source.index);

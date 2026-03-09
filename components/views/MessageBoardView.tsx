@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { motion } from "motion/react";
-import { Plus, MessageSquare } from "lucide-react";
+import { Plus, MessageSquare, ArrowLeft } from "lucide-react";
 import { useAppContext } from "../../context/AppContext";
 
 export function MessageBoardView({ projectId }: { projectId: number }) {
@@ -10,7 +10,7 @@ export function MessageBoardView({ projectId }: { projectId: number }) {
   const projectMessages = messages.filter(m => m.projectId === projectId);
   const projectName = projects.find(p => p.id === projectId)?.name || "Unknown Project";
   
-  const [expandedMessage, setExpandedMessage] = useState<number | null>(null);
+  const [selectedMessageId, setSelectedMessageId] = useState<number | null>(null);
   const [isComposing, setIsComposing] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newContent, setNewContent] = useState("");
@@ -32,6 +32,44 @@ export function MessageBoardView({ projectId }: { projectId: number }) {
     setNewTitle("");
     setNewContent("");
   };
+
+  if (selectedMessageId) {
+    const msg = projectMessages.find(m => m.id === selectedMessageId);
+    if (msg) {
+      return (
+        <motion.div 
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="space-y-6"
+        >
+          <button 
+            onClick={() => setSelectedMessageId(null)}
+            className="flex items-center gap-2 text-zinc-400 hover:text-zinc-100 transition-colors mb-4 group"
+          >
+            <div className="p-1.5 rounded-full bg-zinc-900 group-hover:bg-zinc-800 transition-colors">
+              <ArrowLeft className="w-4 h-4" />
+            </div>
+            <span className="text-sm font-medium">Back to Messages</span>
+          </button>
+          
+          <div className="bg-zinc-900/40 border border-zinc-800/50 rounded-2xl p-6 sm:p-8">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-12 h-12 rounded-full bg-zinc-800 border-2 border-zinc-950 flex items-center justify-center flex-shrink-0 text-lg font-bold text-zinc-400">
+                {msg.author.charAt(0)}
+              </div>
+              <div>
+                <h2 className="text-2xl font-semibold text-zinc-100">{msg.title}</h2>
+                <p className="text-sm text-zinc-500 mt-1">Posted by {msg.author} • {msg.date}</p>
+              </div>
+            </div>
+            <div className="prose prose-invert max-w-none">
+              <p className="text-zinc-300 whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+            </div>
+          </div>
+        </motion.div>
+      );
+    }
+  }
 
   return (
     <motion.div 
@@ -84,13 +122,13 @@ export function MessageBoardView({ projectId }: { projectId: number }) {
       ) : (
         <div className="bg-zinc-900/40 border border-zinc-800/50 rounded-2xl overflow-hidden">
           {projectMessages.map((msg, i) => (
-            <div key={msg.id} onClick={() => setExpandedMessage(expandedMessage === msg.id ? null : msg.id)} className={`p-4 sm:p-6 flex items-start gap-4 hover:bg-zinc-800/30 transition-colors cursor-pointer ${i !== 0 ? 'border-t border-zinc-800/50' : ''}`}>
+            <div key={msg.id} onClick={() => setSelectedMessageId(msg.id)} className={`p-4 sm:p-6 flex items-start gap-4 hover:bg-zinc-800/30 transition-colors cursor-pointer ${i !== 0 ? 'border-t border-zinc-800/50' : ''}`}>
               <div className="w-10 h-10 rounded-full bg-zinc-800 border-2 border-zinc-950 flex items-center justify-center flex-shrink-0 text-sm font-bold text-zinc-400">
                 {msg.author.charAt(0)}
               </div>
               <div className="flex-1">
                 <h3 className="text-lg font-medium text-zinc-100 hover:text-indigo-400 transition-colors">{msg.title}</h3>
-                <p className={`text-sm text-zinc-400 mt-1 ${expandedMessage === msg.id ? '' : 'line-clamp-2'}`}>{msg.content}</p>
+                <p className="text-sm text-zinc-400 mt-1 line-clamp-2">{msg.content}</p>
                 <p className="text-xs text-zinc-500 mt-2">Posted by {msg.author} • {msg.date}</p>
               </div>
               <div className="flex items-center gap-1.5 text-zinc-500">
